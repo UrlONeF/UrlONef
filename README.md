@@ -1,4 +1,4 @@
-# Netflix Memories AR
+# Pookie Memories AR
 
 Un'esperienza di Realtà Aumentata che sovrappone un video ("memories") a una foto stampata (es. in una cornice), ispirata allo stile Netflix.
 Realizzata con MindAR.js e A-Frame.
