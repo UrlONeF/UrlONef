@@ -1,0 +1,99 @@
+:root {
+  --netflix-red: #E50914;
+  --bg-black: #141414;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background-color: var(--bg-black);
+}
+
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  pointer-events: none; /* Lascia passare i click alla scena se serve */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+#controls, #video-ui {
+  pointer-events: auto;
+  text-align: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Start Screen */
+.netflix-btn {
+  background-color: var(--netflix-red);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+  transition: transform 0.2s;
+  text-transform: uppercase;
+}
+
+.netflix-btn:active {
+  transform: scale(0.95);
+}
+
+/* Scan Overlay */
+.scan-guide {
+  position: relative;
+  width: 70vw;
+  height: 100vw; /* Aspect ratio ritratto approssimativo */
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7); /* Oscura il resto */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.scan-guide p {
+  color: white;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  margin-top: 120%; /* Spinge il testo sotto */
+}
+
+/* Angoli guida scansiont */
+.corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--netflix-red);
+}
+
+.top-left { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+.top-right { top: -2px; right: -2px; border-left: none; border-bottom: none; }
+.bottom-left { bottom: -2px; left: -2px; border-right: none; border-top: none; }
+.bottom-right { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+/* Video UI */
+.netflix-logo {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: var(--netflix-red);
+  font-weight: 900;
+  font-size: 1.5rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  letter-spacing: 1px;
+}

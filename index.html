@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Netflix AR Cover</title>
+    
+    <!-- Scripts: MindAR + A-Frame -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <link rel="stylesheet" href="index.css">
+    <link rel="manifest" href="manifest.json">
+  </head>
+  <body>
+    <!-- Overlay UI -->
+    <div id="ui-layer">
+      <div id="scan-overlay" class="hidden">
+        <div class="scan-guide">
+          <div class="corner top-left"></div>
+          <div class="corner top-right"></div>
+          <div class="corner bottom-left"></div>
+          <div class="corner bottom-right"></div>
+          <p>Inquadra la cornice</p>
+        </div>
+      </div>
+      
+      <div id="controls">
+        <button id="start-btn" class="netflix-btn">INIZIA ESPERIENZA</button>
+      </div>
+
+      <div id="video-ui" class="hidden">
+         <div class="netflix-logo">NETFLIX MEMORIES</div>
+      </div>
+    </div>
+
+    <!-- AR Scene -->
+    <!-- NB: Sostituisci 'targets.mind' con il tuo file compilato -->
+    <!-- Per testare usa l'immagine demo di MindAR se non hai ancora il tuo file -->
+    <a-scene 
+      mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: no;" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <!-- Video Asset -->
+        <!-- loop="true" permette di ripeterlo, togliere se non richiesto -->
+        <video id="memories-video" src="./assets/video.mp4" crossorigin="anonymous" playsinline webkit-playsinline loop></video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <!-- Target 0: Il primo (e unico) target nel file .mind -->
+      <a-entity mindar-image-target="targetIndex: 0">
+        <!-- Video Plane: Adatta width/height in base alle proporzioni della tua copertina -->
+        <!-- Se la copertina è verticale (portrait), usa height > width (es: 1 1.4) -->
+        <a-video src="#memories-video" position="0 0 0" height="1.5" width="1" rotation="0 0 0"></a-video>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      const sceneEl = document.querySelector('a-scene');
+      const startBtn = document.getElementById('start-btn');
+      const scanOverlay = document.getElementById('scan-overlay');
+      const videoUi = document.getElementById('video-ui');
+      const video = document.getElementById('memories-video');
+
+      // Gestione Start
+      startBtn.addEventListener('click', () => {
+        document.getElementById('controls').style.display = 'none';
+        scanOverlay.classList.remove('hidden');
+        sceneEl.play(); // Avvia AR engine
+      });
+
+      // Gestione Target Trovato/Perso
+      const arSystem = sceneEl.systems["mindar-image-system"];
+      const targetEntity = document.querySelector('[mindar-image-target]');
+
+      targetEntity.addEventListener("targetFound", event => {
+        console.log("Target found");
+        scanOverlay.classList.add('hidden');
+        videoUi.classList.remove('hidden');
+        video.play();
+        video.muted = false; // Unmute quando trovato (potrebbe richiedere interazione utente precedente)
+      });
+
+      targetEntity.addEventListener("targetLost", event => {
+        console.log("Target lost");
+        video.pause();
+        scanOverlay.classList.remove('hidden');
+        videoUi.classList.add('hidden');
+      });
+      
+      // Fix per iOS audio policy: richiede tocco utente per audio
+      document.body.addEventListener('click', () => {
+         if(!video.paused) return;
+         video.play().then(() => video.pause()); // Unlock audio context
+      }, {once: true});
+
+      // PWA Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js')
+            .then((reg) => console.log('Service Worker Registered'))
+            .catch((err) => console.log('Service Worker Error', err));
+        });
+      }
+    </script>
+  </body>
+</html>
