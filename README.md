@@ -8,8 +8,11 @@ Realizzata con MindAR.js e A-Frame.
 Questo progetto è pronto per essere ospitato gratuitamente su GitHub Pages.
 
 ### Passo 1: Carica su GitHub
-1. Crea un **nuovo repository** su GitHub (es. `ar-memories`).
-2. Carica tutti i file di questa cartella nel repository.
+1. Assicurati di aver generato `assets/targets.mind` (vedi `walkthrough.md`).
+2. Assicurati di aver generato `assets/video.enc` usando `admin.html` (vedi `walkthrough.md`).
+   > **Nota**: Non caricare il video originale `.mp4` se vuoi mantenerlo privato!
+3. Crea un **nuovo repository** su GitHub (es. `ar-memories`).
+4. Carica tutti i file di questa cartella nel repository.
    ```bash
    git init
    git add .

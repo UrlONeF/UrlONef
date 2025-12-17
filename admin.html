@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Netflix AR - Video Encryptor Tool</title>
+    <style>
+        body { font-family: sans-serif; background: #141414; color: white; padding: 2rem; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 500px; width: 100%; background: #222; padding: 2rem; border-radius: 8px; }
+        input, button { width: 100%; padding: 10px; margin-bottom: 1rem; box-sizing: border-box; }
+        button { background: #E50914; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background: #b20710; }
+        .status { margin-top: 1rem; text-align: center; color: #aaa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔒 Video Encryptor</h2>
+        <p>Usa questo tool per criptare il tuo video prima di caricarlo.</p>
+        
+        <label>1. Seleziona Video (max 100MB consigliato)</label>
+        <input type="file" id="videoInput" accept="video/*">
+        
+        <label>2. Imposta Password</label>
+        <input type="password" id="passwordInput" placeholder="Password segreta">
+        
+        <button onclick="encryptVideo()">CRIPTA E SCARICA</button>
+        
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        async function encryptVideo() {
+            const fileInput = document.getElementById('videoInput');
+            const password = document.getElementById('passwordInput').value;
+            const status = document.getElementById('status');
+
+            if (!fileInput.files[0] || !password) {
+                alert("Seleziona file e password!");
+                return;
+            }
+
+            status.textContent = "Lettura file in corso... (potrebbe volerci un po')";
+            const file = fileInput.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+
+            status.textContent = "Generazione chiave crittografica...";
+            
+            // 1. Generate Key from Password (PBKDF2)
+            const enc = new TextEncoder();
+            const salt = crypto.getRandomValues(new Uint8Array(16)); // Random salt
+            const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), { name: "PBKDF2" }, false, ["deriveKey"]);
+            const key = await crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+                keyMaterial,
+                { name: "AES-GCM", length: 256 },
+                false,
+                ["encrypt"]
+            );
+
+            status.textContent = "Crittografia in corso... (Attendere)";
+            
+            // 2. Encrypt Content (AES-GCM)
+            const iv = crypto.getRandomValues(new Uint8Array(12)); // Random IV
+            const encryptedContent = await crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                arrayBuffer
+            );
+
+            // 3. Pack Blob (Salt + IV + EncryptedData)
+            const finalBlob = new Blob([salt, iv, encryptedContent], { type: 'application/octet-stream' });
+            
+            // 4. Download
+            status.textContent = "Fatto! Scaricamento avviato.";
+            const url = URL.createObjectURL(finalBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'video.enc';
+            a.click();
+        }
+    </script>
+</body>
+</html>

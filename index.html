@@ -13,8 +13,17 @@
     <link rel="manifest" href="manifest.json">
   </head>
   <body>
-    <!-- Overlay UI -->
-    <div id="ui-layer">
+    <!-- Login Overlay -->
+    <div id="login-overlay">
+      <h1>MEMORIES</h1>
+      <p>Inserisci codice di accesso</p>
+      <input type="password" id="password-input" placeholder="Codice Segreto">
+      <button id="login-btn" class="netflix-btn">ACCEDI</button>
+      <div id="login-msg" class="error-msg"></div>
+    </div>
+
+    <!-- Overlay UI (Initially hidden behind login) -->
+    <div id="ui-layer" style="display:none">
       <div id="scan-overlay" class="hidden">
         <div class="scan-guide">
           <div class="corner top-left"></div>
@@ -35,8 +44,6 @@
     </div>
 
     <!-- AR Scene -->
-    <!-- NB: Sostituisci 'targets.mind' con il tuo file compilato -->
-    <!-- Per testare usa l'immagine demo di MindAR se non hai ancora il tuo file -->
     <a-scene 
       mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: no;" 
       color-space="sRGB" 
@@ -45,17 +52,13 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <!-- Video Asset -->
-        <!-- loop="true" permette di ripeterlo, togliere se non richiesto -->
-        <video id="memories-video" src="./assets/video.mp4" crossorigin="anonymous" playsinline webkit-playsinline loop></video>
+        <!-- Video Asset vuoto inizialmente, popolato via JS dopo decrittazione -->
+        <video id="memories-video" crossorigin="anonymous" playsinline webkit-playsinline loop></video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <!-- Target 0: Il primo (e unico) target nel file .mind -->
       <a-entity mindar-image-target="targetIndex: 0">
-        <!-- Video Plane: Adatta width/height in base alle proporzioni della tua copertina -->
-        <!-- Se la copertina è verticale (portrait), usa height > width (es: 1 1.4) -->
         <a-video src="#memories-video" position="0 0 0" height="1.5" width="1" rotation="0 0 0"></a-video>
       </a-entity>
     </a-scene>
@@ -66,6 +69,65 @@
       const scanOverlay = document.getElementById('scan-overlay');
       const videoUi = document.getElementById('video-ui');
       const video = document.getElementById('memories-video');
+      const uiLayer = document.getElementById('ui-layer');
+      const loginOverlay = document.querySelector('#login-overlay');
+
+      // --- DECRYPTION LOGIC ---
+      async function decryptAndLoadVideo(password) {
+          const msg = document.getElementById('login-msg');
+          msg.textContent = "Verifica pass & download...";
+          
+          try {
+              // Fetch Encrypted Blob
+              const response = await fetch('./assets/video.enc');
+              if (!response.ok) throw new Error("Video non trovato (assicurati di aver caricato video.enc)");
+              const encryptedData = await response.arrayBuffer();
+
+              // Extract Salt (16), IV (12)
+              const salt = encryptedData.slice(0, 16);
+              const iv = encryptedData.slice(16, 28);
+              const data = encryptedData.slice(28);
+
+              // Derive Key
+              const enc = new TextEncoder();
+              const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), { name: "PBKDF2" }, false, ["deriveKey"]);
+              const key = await crypto.subtle.deriveKey(
+                  { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+                  keyMaterial,
+                  { name: "AES-GCM", length: 256 },
+                  false,
+                  ["decrypt"]
+              );
+
+              // Decrypt
+              const decryptedContent = await crypto.subtle.decrypt(
+                  { name: "AES-GCM", iv: iv },
+                  key,
+                  data
+              );
+
+              // Set Video Source
+              const blob = new Blob([decryptedContent], { type: 'video/mp4' });
+              const url = URL.createObjectURL(blob);
+              video.src = url;
+              
+              // Success: Show UI
+              loginOverlay.style.display = 'none';
+              uiLayer.style.display = 'flex';
+              msg.textContent = "";
+
+          } catch (e) {
+              console.error(e);
+              msg.textContent = "Password errata o file mancante!";
+          }
+      }
+
+      document.getElementById('login-btn').addEventListener('click', () => {
+          const pass = document.getElementById('password-input').value;
+          if(pass) decryptAndLoadVideo(pass);
+      });
+
+      // --- EXISTING AR LOGIC ---
 
       // Gestione Start
       startBtn.addEventListener('click', () => {
@@ -83,7 +145,7 @@
         scanOverlay.classList.add('hidden');
         videoUi.classList.remove('hidden');
         video.play();
-        video.muted = false; // Unmute quando trovato (potrebbe richiedere interazione utente precedente)
+        video.muted = false; 
       });
 
       targetEntity.addEventListener("targetLost", event => {
@@ -93,10 +155,10 @@
         videoUi.classList.add('hidden');
       });
       
-      // Fix per iOS audio policy: richiede tocco utente per audio
+      // Fix per iOS audio policy
       document.body.addEventListener('click', () => {
          if(!video.paused) return;
-         video.play().then(() => video.pause()); // Unlock audio context
+         video.play().then(() => video.pause()); 
       }, {once: true});
 
       // PWA Service Worker Registration
